@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Premium Luxury Magazine - GitHub Pages Edition</title>
+    <style>
+        /* ==========================================================================
+           1. 視覺展場風格與精品配色 (CSS)
+           ========================================================================== */
+        :root {
+            --hermes-orange: #F37021;
+            --champagne-gold: #D4AF37;
+            --ivory-white: #FDFBF7;
+            --showroom-dark: #1C1310;
+            --showroom-light: #2A1F1B;
+            --ui-btn-bg: rgba(253, 251, 247, 0.08);
+            --ui-btn-hover: rgba(243, 112, 33, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--showroom-dark);
+            font-family: 'Cinzel', 'Didot', 'Noto Serif TC', serif;
+        }
+
+        /* 沉浸式精品展場背景 */
+        .showroom-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at 50% 40%, var(--showroom-light) 0%, var(--showroom-dark) 70%);
+            perspective: 1200px;
+            touch-action: none;
+        }
+
+        .spotlight {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 60%;
+            background: radial-gradient(ellipse at top, rgba(212, 175, 55, 0.05) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* 雜誌主舞台（黃金直式比例 1:1.5） */
+        .magazine-stage {
+            position: relative;
+            width: 90vmin;
+            height: 135vmin;
+            max-width: 800px;
+            max-height: 1200px;
+            background: transparent;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 10px 20px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+            border-radius: 4px;
+        }
+
+        #bookCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            display: block;
+        }
+
+        /* 控制介面疊加層 */
+        .controls-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 40px;
+        }
+
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--ui-btn-bg);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .nav-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--ivory-white);
+            transition: transform 0.3s;
+        }
+
+        .prev-btn { left: 40px; }
+        .next-btn { right: 40px; }
+
+        .nav-btn:hover {
+            background-color: var(--ui-btn-hover);
+            border-color: var(--hermes-orange);
+            box-shadow: 0 0 15px rgba(243, 112, 33, 0.3);
+        }
+        .prev-btn:hover svg { transform: translateX(-3px); }
+        .next-btn:hover svg { transform: translateX(3px); }
+
+        /* 時尚進度控制台 */
+        .meta-panel {
+            margin: auto auto 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .page-number {
+            font-size: 14px;
+            letter-spacing: 4px;
+            color: var(--champagne-gold);
+            font-weight: 300;
+        }
+
+        .progress-bar-container {
+            width: 160px;
+            height: 1px;
+            background-color: rgba(253, 251, 247, 0.15);
+            position: relative;
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background-color: var(--hermes-orange);
+            transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* 響應式手機端優化 */
+        @media (max-width: 768px) {
+            .controls-overlay { padding: 15px; }
+            .nav-btn { width: 44px; height: 44px; }
+            .prev-btn { left: 15px; }
+            .next-btn { right: 15px; }
+            .magazine-stage { width: 95vw; height: 142.5vw; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .progress-line, .nav-btn { transition: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="showroom-container" role="main" aria-label="精品電子雜誌閱讀器">
+        <div class="spotlight"></div>
+
+        <div class="magazine-stage">
+            <canvas id="bookCanvas"></canvas>
+        </div>
+
+        <div class="controls-overlay">
+            <button class="nav-btn prev-btn" id="prevBtn" aria-label="上一頁">
+                <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            </button>
+            
+            <button class="nav-btn next-btn" id="nextBtn" aria-label="下一頁">
+                <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+            </button>
+
+            <div class="meta-panel">
+                <div class="page-number" id="pageNumber" aria-live="polite">01 / 01</div>
+                <div class="progress-bar-container">
+                    <div class="progress-line" id="progressLine"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           2. 核心 Page Curl 幾何運算與交互控制 (JavaScript)
+           ========================================================================== */
+        (function() {
+            'use strict';
+
+            const CONFIG = {
+                // ⚠️ 日後上傳到 GitHub 後，可將此處網址替換成您的直式模具廠、產品照或型錄路徑
+                pages: [
+                    'https://unsplash.com',
+                    'https://unsplash.com',
+                    'https://unsplash.com',
+                    'https://unsplash.com'
+                ],
+                completionThreshold: 0.25,
+                turnDuration: 600,
+                returnDuration: 400,
+                shadowStrength: 0.45,
+                curlRadius: 40,
+                ivoryWhite: '#FDFBF7',
+                paperBack: '#FAF5EC'
+            };
+
+            let state = {
+                currentPage: 0,
+                images: [],
+                isAnimating: false,
+                isDragging: false,
+                dragStart: { x: 0, y: 0 },
+                dragCurrent: { x: 0, y: 0 },
+                activeCorner: null,
+                flipProgress: 0,
+                targetDirection: 0,
+                width: 0,
+                height: 0
+            };
+
+            let canvas, ctx, prevBtn, nextBtn, pageNumEl, progressLineEl;
+
+            function init() {
+                canvas = document.getElementById('bookCanvas');
+                ctx = canvas.getContext('2d');
+                prevBtn = document.getElementById('prevBtn');
+                nextBtn = document.getElementById('nextBtn');
+                pageNumEl = document.getElementById('pageNumber');
+                progressLineEl = document.getElementById('progressLine');
+
+                window.addEventListener('resize', handleResize);
+                setupInteraction();
+                preloadImages();
+            }
+
+            function preloadImages() {
+                let loadedCount = 0;
+                CONFIG.pages.forEach((src, idx) => {
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+                    img.src = src;
+                    img.onload = () => {
+                        loadedCount++;
+                        if (loadedCount === CONFIG.pages.length) {
+                            handleResize();
+                            updateUI();
+                        }
+                    };
+                    img.onerror = () => {
+                        loadedCount++;
+                        if (loadedCount === CONFIG.pages.length) {
+                            handleResize();
+                            updateUI();
+                        }
+                    };
+                    state.images[idx] = img;
+                });
+            }
+
+            function handleResize() {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                state.width = rect.width;
+                state.height = rect.height;
+                canvas.width = state.width * dpr;
+                canvas.height = state.height * dpr;
+                ctx.scale(dpr, dpr);
+                render();
+            }
+
+            function render() {
+                if (!ctx) return;
